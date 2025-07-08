@@ -23,13 +23,18 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 
 # Авторизация в Google Sheets через переменную среды GOOGLE_CREDENTIALS
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds_dict = json.load(StringIO(GOOGLE_CREDENTIALS))
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-client = gspread.authorize(creds)
 
-sheet = client.open_by_key(SPREADSHEET_ID)
-data_sheet = sheet.worksheet("Данные")
-cat_sheet = sheet.worksheet("Категории")
+try:
+    creds_dict = json.load(StringIO(GOOGLE_CREDENTIALS))
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open_by_key(SPREADSHEET_ID)
+    data_sheet = sheet.worksheet("Данные")
+    cat_sheet = sheet.worksheet("Категории")
+except Exception as e:
+    print("Ошибка авторизации или доступа к листам:", e)
+    exit(1)
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 user_state = {}
@@ -160,3 +165,4 @@ def show_subcategories(chat_id, category):
     bot.send_message(chat_id, "Выберите подкатегорию:", reply_markup=markup)
 
 bot.polling()
+
