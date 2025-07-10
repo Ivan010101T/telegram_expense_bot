@@ -231,4 +231,63 @@ def show_subcategories(chat_id, category):
     user_state[chat_id]["step"] = "subcategory"
     bot.send_message(chat_id, "Выберите подкатегорию:", reply_markup=markup)
 
+def show_all_categories(message):
+    rows = cat_sheet.get_all_values()[1:]
+    if not rows:
+        bot.send_message(message.chat.id, "Категорий пока нет.")
+        return
+
+    categories = {}
+    for cat, sub in rows:
+        if cat not in categories:
+            categories[cat] = []
+        if sub:
+            categories[cat].append(sub)
+
+    text = "📂 <b>Категории и подкатегории:</b>\n"
+    for cat, subs in categories.items():
+        text += f"\n<b>{cat}</b>"
+        if subs:
+            text += f": {', '.join(subs)}"
+    bot.send_message(message.chat.id, text, parse_mode="HTML")
+
+def monthly_report(message):
+    parts = message.text.strip().split()
+    if len(parts) != 2:
+        bot.send_message(message.chat.id, "❗ Используйте формат: /отчёт 2025-07")
+        return
+
+    month = parts[1]
+    rows = data_sheet.get_all_values()[1:]
+    filtered = [r for r in rows if r[2] == month]
+
+    if not filtered:
+        bot.send_message(message.chat.id, f"Нет данных за {month}")
+        return
+
+    expenses = {}
+    incomes = {}
+
+    for r in filtered:
+        type_, amount, cat, sub = r[3], float(r[4]), r[5], r[6]
+        if type_ == "расход":
+            key = f"{cat} / {sub}"
+            expenses[key] = expenses.get(key, 0) + amount
+        else:
+            key = f"{cat} / {sub}"
+            incomes[key] = incomes.get(key, 0) + amount
+
+    def format_block(title, data):
+        if not data:
+            return f"{title}: нет записей"
+        lines = [f"{k}: {round(v, 2)}₽" for k, v in data.items()]
+        total = sum(data.values())
+        return f"{title}:\n" + "\n".join(lines) + f"\nИтого: {round(total, 2)}₽"
+
+    report = f"📊 <b>Отчёт за {month}</b>\n\n"
+    report += format_block("💸 Расходы", expenses) + "\n\n"
+    report += format_block("💰 Доходы", incomes)
+
+    bot.send_message(message.chat.id, report, parse_mode="HTML")
+
 bot.polling()
