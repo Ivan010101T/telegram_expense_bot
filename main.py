@@ -289,5 +289,36 @@ def monthly_report(message):
     report += format_block("💰 Доходы", incomes)
 
     bot.send_message(message.chat.id, report, parse_mode="HTML")
+    
+# === АНТИСПАМ ЗАЩИТА ===
 
+ALLOWED_USERS = [123456789]  # ← здесь ваш user_id
+
+SPAM_KEYWORDS = ["airdrop", "freeether", "claim eth", "giveaway", "http://", "https://"]
+
+def is_spam(message):
+    text = message.text.lower()
+    return any(keyword in text for keyword in SPAM_KEYWORDS)
+
+@bot.message_handler(func=lambda message: True)
+def main_handler(message):
+    user_id = message.from_user.id
+    username = message.from_user.username or message.from_user.first_name
+    print(f"[{datetime.now()}] {user_id} ({username}): {message.text}")
+
+    # 🔐 Проверка: только разрешённые пользователи
+    if user_id not in ALLOWED_USERS:
+        bot.send_message(message.chat.id, "⛔ Доступ запрещён.")
+        return
+
+    # 🚫 Проверка на спам
+    if is_spam(message):
+        bot.send_message(message.chat.id, "🚫 Сообщение заблокировано как подозрительное.")
+        return
+
+    # ✅ Если всё чисто — обработка
+    handle_text(message)
+
+# === ЗАПУСК БОТА ===
 bot.polling()
+
